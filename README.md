@@ -10,6 +10,7 @@ This project provides automated solutions for:
 - **Batch Restore Operations** - Restore multiple devices from saved backups
 - **Performance Monitoring** - Track backup/restore operations with metrics
 - **Error Handling** - Comprehensive validation and error recovery
+- **Academic Research Implementation** - Designed for IEEE paper reproducibility
 
 ## 🛠️ Prerequisites
 
@@ -214,5 +215,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Happy Automating! 🚀**
+
+**Author:** Hein Htet Naing  
+**Contact:** hhnhhnhhn369@gmail.com  
 
 For questions or issues, please open a GitHub issue or contribute to the project.
