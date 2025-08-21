@@ -28,7 +28,7 @@ You need either:
 ## 🏗️ Lab Setup Guide
 
 ### Option 1: GNS3 Lab Setup
-1. Install GNS3 and import MikroTik RouterOS images
+1. Install GNS3 and import MikroTik RouterOS images (u can use other vendors too but u need to modify the the playbook by yourself, this project includes only about MikroTik RouterOs, I will try to add another vendors in future)
 2. Create network topology with multiple RouterOS devices
 3. Configure management IP addresses for each device
 4. Enable SSH on all RouterOS devices:
