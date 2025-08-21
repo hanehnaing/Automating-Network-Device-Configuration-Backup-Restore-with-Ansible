@@ -1,0 +1,27 @@
+# EXAMPLE ANSIBLE CONFIGURATION
+# ⚠️  IMPORTANT: Update paths to match YOUR actual environment
+
+[defaults]
+inventory = hosts.ini
+# (other defaults can be set here as needed) 
+scp_if_ssh = True
+
+[ssh_connection]
+# ⚠️  CRITICAL: Update this path to YOUR actual project location
+ssh_executable=/path/to/your/project/ansible_env/bin/python -m ansible_pylibssh.ssh
+# Optionally set pipelining (can speed up connections if your devices support it)
+pipelining = True
+# Common SSH arguments; adjust if needed
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o StrictHostKeyChecking=no
+control_path = %(directory)s/ansible-ssh-%%h-%%p-%%r
+# Prevent Paramiko from looking for keys automatically if you prefer to specify your own:
+look_for_keys = False
+
+[persistent_connection]
+ssh_type = libssh
+
+# CONFIGURATION NOTES:
+# 1. Replace "/path/to/your/project" with your actual project directory path
+# 2. Ensure the Python executable path points to your virtual environment
+# 3. Adjust SSH arguments based on your network requirements
+# 4. Test connectivity after making changes

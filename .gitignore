@@ -1,0 +1,68 @@
+# Ansible specific
+*.retry
+.vault_pass
+.ansible_vault_pass
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+ansible_env/
+venv/
+env/
+ENV/
+
+# Backup files (you may want to exclude these or keep them)
+backups/
+*.backup
+*.bak
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# SSH keys (IMPORTANT - never commit these!)
+*.pem
+*.key
+id_rsa*
+ansible_key*
+
+# Logs
+*.log
+ansible.log
+
+# Local configuration files that shouldn't be shared
+hosts.ini
+hosts.local
+config.local
+ansible.cfg.local

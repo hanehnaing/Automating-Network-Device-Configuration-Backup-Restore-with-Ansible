@@ -1,0 +1,152 @@
+---
+- name: Reliable MikroTik Backup Automation (Synchronous) with Performance Metrics
+  hosts: mikrotik
+  gather_facts: false
+  vars:
+    backup_base: "/home/hane/Desktop/AnsibleProject/backups"
+    backup_name: "{{ inventory_hostname }}-{{ local_timestamp.stdout }}"
+    local_backup_path: "{{ backup_base }}/{{ inventory_hostname }}"
+    local_backup_file: "{{ local_backup_path }}/{{ inventory_hostname }}_{{ local_timestamp.stdout }}.backup"
+
+  pre_tasks:
+    - name: Record global start time
+      delegate_to: localhost
+      run_once: true
+      command: "date +%s"
+      register: global_start_time
+      changed_when: false
+
+  tasks:
+    # Phase 1: Timestamp Generation
+    - name: Get current timestamp
+      delegate_to: localhost
+      command: "date -u +'%Y%m%dT%H%M%S'"
+      register: local_timestamp
+      changed_when: false
+
+    # Phase 2: Check MikroTik CPU and Memory Before Backup
+    - name: Get MikroTik CPU Usage (Before Backup)
+      community.routeros.command:
+        commands: "/system resource print"
+      register: mikrotik_resource_before
+
+    - name: Parse MikroTik CPU Usage
+      set_fact:
+        cpu_before: "{{ mikrotik_resource_before.stdout_lines | select('search', 'cpu-load') | list }}"
+
+    # Phase 3: Start Timer
+    - name: Record start time
+      delegate_to: localhost
+      command: "date +%s"
+      register: start_time
+      changed_when: false
+
+    # Phase 4: Directory Setup
+    - name: Create backup directory
+      delegate_to: localhost
+      file:
+        path: "{{ local_backup_path }}"
+        state: directory
+        mode: "0755"
+        owner: hane
+        group: hane
+
+    # Phase 5: Create valid binary backup
+    - name: Create valid binary backup (Synchronous)
+      community.routeros.command:
+        commands: /system backup save name=ProfBackup
+
+    # Phase 6: Download backup
+    - name: Download backup
+      net_get:
+        src: /ProfBackup.backup
+        dest: "{{ local_backup_file }}"
+        delegate_to: localhost
+      delegate_facts: false
+
+    # Phase 7: Stop Timer
+    - name: Record end time
+      delegate_to: localhost
+      command: "date +%s"
+      register: end_time
+      changed_when: false
+
+    # Phase 8: Compute MD5 checksum of downloaded backup
+    - name: Compute MD5 checksum
+      delegate_to: localhost
+      command: "md5sum {{ local_backup_file }}"
+      register: local_checksum
+      changed_when: false
+
+    - name: Extract local MD5 checksum
+      set_fact:
+        local_md5: "{{ local_checksum.stdout.split()[0] }}"
+
+    # Phase 9: Verify backup file exists & get size
+    - name: Verify backup file exists
+      delegate_to: localhost
+      stat:
+        path: "{{ local_backup_file }}"
+      register: backup_stat
+      failed_when: not backup_stat.stat.exists or backup_stat.stat.size < 20480
+
+    # Phase 10: Calculate Backup Time & Speed
+    - name: Compute backup duration
+      set_fact:
+        backup_duration: "{{ end_time.stdout | int - start_time.stdout | int }}"
+
+    - name: Compute network transfer speed
+      set_fact:
+        transfer_speed: "{{ (backup_stat.stat.size | int) / (backup_duration | int) / 1024 | round(2) }}"
+
+    # Phase 11: Check MikroTik CPU and Memory After Backup
+    - name: Get MikroTik CPU Usage (After Backup)
+      community.routeros.command:
+        commands: "/system resource print"
+      register: mikrotik_resource_after
+
+    - name: Parse MikroTik CPU Usage
+      set_fact:
+        cpu_after: "{{ mikrotik_resource_after.stdout_lines | select('search', 'cpu-load') | list }}"
+
+    # Phase 12: Cleanup Remote Backup
+    - name: Remove remote backup
+      community.routeros.command:
+        commands: "/file remove ProfBackup.backup"
+
+    # Phase 13: Per-host summary
+    - debug:
+        msg: >-
+          {{
+            [
+              "✓ Valid Backup Created (Synchronous)",
+              "Device: " ~ inventory_hostname,
+              "Size: " ~ (backup_stat.stat.size | filesizeformat),
+              "MD5 Checksum: " ~ local_md5,
+              "Backup Duration: " ~ backup_duration ~ " seconds",
+              "Network Transfer Speed: " ~ transfer_speed ~ " KB/s",
+              "CPU Before Backup:"
+            ] +
+            cpu_before[0] +
+            [
+              "CPU After Backup:"
+            ] +
+            cpu_after[0] +
+            [
+              "Path: " ~ local_backup_file
+            ]
+          }}
+
+  post_tasks:
+    - name: Record global end time
+      delegate_to: localhost
+      run_once: true
+      command: "date +%s"
+      register: global_end_time
+      changed_when: false
+
+    - name: Show total elapsed backup time across all devices
+      delegate_to: localhost
+      run_once: true
+      debug:
+        msg: "🕒 Total Backup Time for all devices: {{ global_end_time.stdout | int - global_start_time.stdout | int }} seconds"

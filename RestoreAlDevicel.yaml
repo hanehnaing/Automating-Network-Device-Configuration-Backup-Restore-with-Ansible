@@ -1,0 +1,122 @@
+---
+- name: MikroTik Restore Automation (Restore Latest Backup for Each Device)
+  hosts: mikrotik
+  gather_facts: false
+  connection: network_cli
+  vars_prompt:
+    - name: mikrotik_admin_password
+      prompt: "Enter the MikroTik admin password for restoration"
+      private: true
+  vars:
+    backup_base: "/home/hane/Desktop/AnsibleProject/backups"
+    local_backup_path: "{{ backup_base }}/{{ inventory_hostname }}"
+    remote_restore_file: "{{ inventory_hostname }}_restore.backup"
+    ansible_command_timeout: 120
+    ansible_connect_timeout: 120
+
+  tasks:
+    - name: Find latest backup file for each device
+      delegate_to: localhost
+      shell: "ls -1t {{ local_backup_path }}/{{ inventory_hostname }}_*.backup | head -1"
+      register: latest_backup_file
+      changed_when: false
+
+    - name: Set restore_file to latest backup
+      set_fact:
+        restore_file: "{{ latest_backup_file.stdout }}"
+
+    - name: Record start time
+      delegate_to: localhost
+      command: "date +%s"
+      register: start_time
+      changed_when: false
+
+    - name: Check if the latest backup file exists locally
+      delegate_to: localhost
+      stat:
+        path: "{{ restore_file }}"
+      register: restore_file_stat
+      failed_when: not restore_file_stat.stat.exists
+
+    - name: Compute MD5 checksum of local backup file for validation
+      delegate_to: localhost
+      command: "md5sum {{ restore_file }}"
+      register: local_checksum
+      changed_when: false
+
+    - name: Extract local MD5 checksum
+      set_fact:
+        local_md5: "{{ local_checksum.stdout.split()[0] }}"
+
+    - name: Record Upload Start time
+      delegate_to: localhost
+      command: "date +%s"
+      register: upload_start_time
+      changed_when: false
+
+    - name: Upload the backup file to the MikroTik device
+      net_put:
+        src: "{{ restore_file }}"
+        dest: "/{{ remote_restore_file }}"
+
+    - name: Record Upload End time
+      delegate_to: localhost
+      command: "date +%s"
+      register: upload_end_time
+      changed_when: false
+
+    - name: Restore the uploaded backup on the MikroTik device (expects disconnect)
+      community.routeros.command:
+        commands:
+          - "/system backup load name={{ remote_restore_file }} password={{ mikrotik_admin_password }}"
+      ignore_errors: true
+
+    - name: Wait for device to become reachable after reboot
+      wait_for_connection:
+        delay: 60
+        timeout: 300
+      register: wait_connection_result
+
+    - name: Record end time after successful reboot
+      delegate_to: localhost
+      command: "date +%s"
+      register: end_time
+      changed_when: false
+      when: wait_connection_result is succeeded
+
+    - name: Compute restore duration
+      set_fact:
+        restore_duration: "{{ end_time.stdout | int - start_time.stdout | int }}"
+      when: wait_connection_result is succeeded
+
+    - name: Remove remote restore file after successful restoration
+      community.routeros.command:
+        commands:
+          - "/file remove {{ remote_restore_file }}"
+      retries: 3
+      delay: 20
+      when: wait_connection_result is succeeded
+
+    - name: Compute various durations
+      set_fact:
+        upload_duration: "{{ upload_end_time.stdout | int - upload_start_time.stdout | int }}"
+        device_downtime: "{{ wait_connection_result.elapsed }}"
+        restore_duration: "{{ end_time.stdout | int - start_time.stdout | int }}"
+      when: wait_connection_result is succeeded
+
+    - name: Display success report with detailed metrics
+      debug:
+        msg: >-
+          [
+            "✓ Latest Backup Restored Successfully!",
+            "---------------------------------",
+            "Device: {{ inventory_hostname }}",
+            "Restored From File: {{ restore_file }}",
+            "Validated MD5: {{ local_md5 }}",
+            "---------------------------------",
+            "PERFORMANCE BREAKDOWN:",
+            "  - Network Upload Duration: {{ upload_duration }} seconds",
+            "  - Device Downtime (Reboot): {{ device_downtime }} seconds",
+            "  - Total Restore Duration (End-to-End): {{ restore_duration }} seconds"
+          ]
+      when: wait_connection_result is succeeded

@@ -1,0 +1,8 @@
+ansible
+paramiko
+pexpect
+PyYAML
+Jinja2
+cryptography
+bcrypt
+PyNaCl

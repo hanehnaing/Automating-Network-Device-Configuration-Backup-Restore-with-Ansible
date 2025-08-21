@@ -1,0 +1,27 @@
+# EXAMPLE INVENTORY FILE
+# ⚠️  IMPORTANT: Replace all IP addresses, hostnames, and paths with YOUR actual network configuration
+
+[mikrotik]
+# Example entries - REPLACE WITH YOUR ACTUAL DEVICES
+mainrouter ansible_host=192.168.1.1    ansible_user=admin ansible_ssh_private_key_file=~/.ssh/ansible 
+router2    ansible_host=192.168.1.2    ansible_user=admin ansible_ssh_private_key_file=~/.ssh/ansible
+router3    ansible_host=192.168.1.3    ansible_user=admin ansible_ssh_private_key_file=~/.ssh/ansible
+router4    ansible_host=192.168.1.4    ansible_user=admin ansible_ssh_private_key_file=~/.ssh/ansible
+
+# Add more devices as needed following the same pattern:
+# device_name ansible_host=IP_ADDRESS ansible_user=admin ansible_ssh_private_key_file=~/.ssh/ansible
+
+[mikrotik:vars]
+ansible_connection=ansible.netcommon.network_cli
+ansible_network_os=community.routeros.routeros
+# ⚠️  IMPORTANT: Update this path to match YOUR actual Python environment
+ansible_python_interpreter=/path/to/your/project/ansible_env/bin/python3
+ansible_ssh_type=pylibssh
+ansible_persistent_command_timeout=120
+
+# CONFIGURATION NOTES:
+# 1. Replace all IP addresses (192.168.1.x) with your actual MikroTik device IPs
+# 2. Replace hostnames (mainrouter, router2, etc.) with meaningful names for your devices
+# 3. Update the ansible_python_interpreter path to your actual project location
+# 4. Ensure your SSH private key path is correct
+# 5. Make sure all devices have SSH enabled and accessible
