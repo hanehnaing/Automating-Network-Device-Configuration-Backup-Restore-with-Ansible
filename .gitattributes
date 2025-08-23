@@ -1,0 +1,4 @@
+*.yml linguist-language=Python
+*.yaml linguist-language=Python
+*.cfg linguist-language=INI
+*.ini linguist-language=INI
