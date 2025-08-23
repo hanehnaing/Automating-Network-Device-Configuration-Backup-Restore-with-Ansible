@@ -133,7 +133,7 @@ ansible-playbook BatchRestore.yaml
 ├── Backup.yaml                 # Main backup playbook
 ├── RestoreOneDevice.yaml       # Single device restore
 ├── BatchRestore.yaml          # Batch restore operations
-├── RestoreAlDevicel.yaml      # Alternative restore playbook
+├── RestoreAlDevicel.yaml      # All devices with latest backup restore playbook
 ├── restore_timestamps.yaml    # Timestamp management
 ├── ansible_env/               # Python virtual environment
 └── backups/                   # Backup storage directory
